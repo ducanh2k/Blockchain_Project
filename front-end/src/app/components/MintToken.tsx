@@ -13,7 +13,7 @@ const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
   const handleMint = async () => {
     try {
       const contract = new ethers.Contract(
-        "YOUR_CONTRACT_ADDRESS",
+        "0x078722D23A1Eb72e780Cd985b17e10C9CEbE6848",
         erc20Abi,
         signer
       );
