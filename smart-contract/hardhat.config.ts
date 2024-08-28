@@ -16,6 +16,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "paris",
         },
       },
     ],
@@ -29,7 +30,7 @@ const config: HardhatUserConfig = {
       url: process.env.RPC_URL_BSC,
       chainId: 97,
       accounts: [process.env.Privatekey || ""],
-      gasPrice: 200000000000,
+      gasPrice: 2000000000000,
     },
   },
   etherscan: {

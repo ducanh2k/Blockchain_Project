@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule("MyDeployContract", (m) => {
-  const tokenA = m.contract("TokenA", ["1000000"]);
+export default buildModule("contractDeployment", (m) => {
+  const tokenA = m.contract("TokenA");
 
   const nftB = m.contract("NFTB");
 

@@ -18,7 +18,7 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({ onSignIn }) => 
         const { chainId } = await provider.getNetwork();
 
         if (chainId !== BigInt(parseInt(BSC_TESTNET_CHAIN_ID, 16))) {
-          message.error('Vui lòng kết nối với mạng BSC Testnet.');
+          message.error('Please connect with BSC Testnet.');
           return;
         }
 
@@ -26,19 +26,19 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({ onSignIn }) => 
         const signer = provider.getSigner();
         const address = await (await signer).getAddress();
         setAccount(address);
-        message.success(`Đã kết nối: ${address}`);
+        message.success(`Connected: ${address}`);
         onSignIn(address, await signer);
       } catch (error) {
-        message.error('Không thể kết nối với MetaMask.');
+        message.error('Cannot connect with MetaMask.');
       }
     } else {
-      message.error('MetaMask chưa được cài đặt.');
+      message.error('MetaMask is not installed.');
     }
   };
 
   return (
     <Button type="primary" onClick={connectWallet}>
-      {account ? `Đã kết nối: ${account}` : 'Kết nối với MetaMask'}
+      {account ? `Connected: ${account}` : 'Connect with MetaMask'}
     </Button>
   );
 };

@@ -1,26 +1,79 @@
 // src/app/pages/index.tsx
 "use client";
-import React, { useState } from "react";
-import { Layout, Typography, Menu } from "antd";
+import React, { useEffect, useState } from "react";
+import { Layout, Typography, Menu, message } from "antd";
 import { ethers } from "ethers";
 import SignInWithMetaMask from "./components/SignInWithMetaMask";
 import DepositForm from "./components/DepositForm";
 import WithdrawForm from "./components/WithdrawForm";
 import TransactionHistory from "./components/TransactionHistory";
-import MintToken from "./components/MintToken"; // Import thành phần MintToken
+import MintToken from "./components/MintToken"; // Import MintToken component
 import Link from "next/link";
 
-const { Header, Content, Footer, Sider } = Layout;
+const tokenAddress = "0x7177f1345a32fBEB32E3fCe8a265909bF047df59";
+const stakingAddress = "0x4870b2e3850412Be2fAD50B4a260756b14398902";
+const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
+
+const tokenAbi = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function mintToken(address _to,uint256 _amount) public",
+  "function balanceOf(address account) external view returns (uint256)",
+];
+
+const stakingAbi = [
+  "function deposit(uint256 _amount) external",
+  "function withdraw(uint256 _amount) external",
+  "function balanceOf(address account) external view returns (uint256)",
+];
+
+const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
 
 const Home: React.FC = () => {
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [address, setAddress] = useState<string>("");
 
-  const handleSignIn = (address: string, signer: ethers.Signer) => {
-    setSigner(signer);
-    setAddress(address);
+  // State for balances
+  const [tokenBalance, setTokenBalance] = useState<string>("0");
+  const [depositBalance, setDepositBalance] = useState<string>("0");
+  const [withdrawBalance, setWithdrawBalance] = useState<string>("0");
+
+  const fetchBalances = async (signer: ethers.Signer) => {
+    try {
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      const stakingContract = new ethers.Contract(
+        stakingAddress,
+        stakingAbi,
+        signer
+      );
+
+      const tokenBalance = await tokenContract.balanceOf(wallet_address);
+      setTokenBalance(ethers.formatUnits(tokenBalance, 18));
+
+      const depositBalance = await tokenContract.balanceOf(stakingAddress);
+      setDepositBalance(ethers.formatUnits(depositBalance, 18));
+
+      // setWithdrawBalance(ethers.formatUnits(depositBalance, 18));
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+      message.error("Error fetching balances");
+    }
   };
+
+  const handleSignIn = async (
+    userAddress: string,
+    userSigner: ethers.Signer
+  ) => {
+    setSigner(userSigner);
+    setAddress(userAddress);
+    await fetchBalances(userSigner);
+  };
+
+  useEffect(() => {
+    if (signer) {
+      fetchBalances(signer);
+    }
+  }, [signer]);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -33,15 +86,6 @@ const Home: React.FC = () => {
           <Menu.Item key="dashboard">
             <Link href="/">Dashboard</Link>
           </Menu.Item>
-          {/* <Menu.Item key="deposit">
-            <Link href="/deposit">Deposit</Link>
-          </Menu.Item>
-          <Menu.Item key="withdraw">
-            <Link href="/withdraw">Withdraw</Link>
-          </Menu.Item>
-          <Menu.Item key="history">
-            <Link href="/history">Transaction History</Link>
-          </Menu.Item> */}
           <Menu.Item key="admin">
             <Link href="/admin">Admin Panel</Link>
           </Menu.Item>
@@ -55,13 +99,22 @@ const Home: React.FC = () => {
         </Header>
         <Content style={{ padding: "0 50px", marginTop: 24 }}>
           <SignInWithMetaMask onSignIn={handleSignIn} />
-          {signer && (
+          {signer ? (
             <div>
-              <MintToken signer={signer} /> 
+              <div style={{ marginTop: "20px", color: "black" }}>
+                <p>Token Balance: {tokenBalance} TOKEN</p>
+                <p>Deposit Balance: {depositBalance} TOKEN</p>
+                <p>Withdraw Balance: {withdrawBalance} TOKEN</p>
+              </div>
+              <MintToken signer={signer} />
               <DepositForm signer={signer} />
               <WithdrawForm signer={signer} />
               <TransactionHistory address={address} />
             </div>
+          ) : (
+            <p>
+              Please sign in to view your balances and interact with the dApp.
+            </p>
           )}
         </Content>
       </Layout>

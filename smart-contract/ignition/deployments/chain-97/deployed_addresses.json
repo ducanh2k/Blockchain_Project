@@ -1,5 +1,5 @@
 {
-  "MyDeployContract#NFTB": "0x24B3e8A1f55BfE250c55366ac99739Bc0441aCf6",
-  "MyDeployContract#TokenA": "0xa6c9A451Ce7c8E03C314c643e104161f66BfB99f",
-  "MyDeployContract#DepositReward": "0x078722D23A1Eb72e780Cd985b17e10C9CEbE6848"
+  "contractDeployment#NFTB": "0x72f58A3fcdd0d54496659406634E041ff45437B5",
+  "contractDeployment#TokenA": "0x7177f1345a32fBEB32E3fCe8a265909bF047df59",
+  "contractDeployment#DepositReward": "0x4870b2e3850412Be2fAD50B4a260756b14398902"
 }

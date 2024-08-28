@@ -5,6 +5,21 @@ import { ethers } from "ethers";
 interface MintTokenProps {
   signer: ethers.Signer;
 }
+const tokenAddress = "0x7177f1345a32fBEB32E3fCe8a265909bF047df59";
+const stakingAddress = "0x4870b2e3850412Be2fAD50B4a260756b14398902";
+const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
+
+const tokenAbi = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function mintToken(address _to,uint256 _amount) public",
+  "function balanceOf(address account) external view returns (uint256)",
+];
+
+const stakingAbi = [
+  "function deposit(uint256 _amount) external",
+  "function withdraw(uint256 _amount) external",
+  "function balanceOf(address account) external view returns (uint256)",
+];
 
 const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
   const [recipient, setRecipient] = useState<string>("");
@@ -12,17 +27,21 @@ const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
 
   const handleMint = async () => {
     try {
-      const contract = new ethers.Contract(
-        "0x078722D23A1Eb72e780Cd985b17e10C9CEbE6848",
-        erc20Abi,
-        signer
+      if (!recipient || !amount) {
+        message.error("Recipient address and amount are required");
+        return;
+      }
+
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      const tx = await tokenContract.mintToken(
+        recipient,
+        ethers.parseUnits(amount, 18)
       );
-      const tx = await contract.mint(recipient, ethers.parseUnits(amount, 18));
       await tx.wait();
       message.success("Token minted successfully");
     } catch (error) {
       console.error("Minting failed:", error);
-      message.error("Minting failed");
+      message.error("Minting failed:" + error);
     }
   };
 
@@ -48,7 +67,5 @@ const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
     </Form>
   );
 };
-
-const erc20Abi: any = ["function mint(address to, uint256 amount) public"];
 
 export default MintToken;
