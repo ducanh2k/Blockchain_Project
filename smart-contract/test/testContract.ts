@@ -20,26 +20,26 @@ describe("DepositReward Contract", function () {
   
       // Deploy TokenA and NFTB contracts
       tokenA = await TokenA.deploy();
-      await tokenA.deployed();
-      console.log("TokenA deployed at:", tokenA.address);
+      const tokenAddress = await tokenA.getAddress();
+      console.log("TokenA deployed at:",tokenAddress);
   
       nftB = await NFTB.deploy();
-      await nftB.deployed();
-      console.log("NFTB deployed at:", nftB.address);
+      // await nftB.deployed();
+      const nftBAddress = await nftB.getAddress();
+      console.log("NFTB deployed at:", nftBAddress);
   
       // Ensure that tokenA and nftB are properly deployed
-      if (!tokenA.address || !nftB.address) {
+      if (!tokenA.getAddress() || !nftB.getAddress()) {
           throw new Error("TokenA or NFTB contract deployment failed");
       }
   
       // Deploy DepositReward contract
-      depositReward = await DepositReward.deploy(tokenA.address, nftB.address);
-      await depositReward.deployed();
-      console.log("DepositReward deployed at:", depositReward.address);
+      depositReward = await DepositReward.deploy(tokenAddress, nftBAddress);
+      console.log("DepositReward deployed at:", await depositReward.getAddress());
   
       // Mint some tokens to addr1 and approve DepositReward contract
       await tokenA.mintToken(addr1.address, ethers.parseUnits("1000000", 18));
-      await tokenA.connect(addr1).approve(depositReward.address, ethers.parseUnits("1000000", 18));
+      await tokenA.connect(addr1).approve(await depositReward.getAddress(), ethers.parseUnits("1000000", 18));
   });
   
 

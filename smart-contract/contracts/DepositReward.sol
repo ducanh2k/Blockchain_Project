@@ -19,30 +19,36 @@ contract DepositReward is Ownable {
 
     mapping(address => Deposit[]) public deposits;
 
-    event DepositMade(address indexed user, uint256 amount, uint256 depositTime);
+    event DepositMade(
+        address indexed user,
+        uint256 amount,
+        uint256 depositTime
+    );
     event Withdraw(address indexed user, uint256 amount);
     event RewardClaimed(address indexed user, uint256 reward);
     event APRUpdated(uint256 newAPR);
 
-    constructor(IERC20 _tokenA, NFTB _nftB) Ownable(msg.sender) {
-        tokenA = _tokenA;
-        nftB = _nftB;
+    constructor(address _tokenA, address _nftB) Ownable(msg.sender) {
+        tokenA = IERC20(_tokenA);
+        nftB = NFTB(_nftB);
     }
 
     // Allow users to deposit TokenA
     function deposit(uint256 amount) external {
-        require(amount >= TOKEN_THRESHOLD, "Deposit must be at least 1M TokenA");
-
+        require(amount >= TOKEN_THRESHOLD, "Amount too small");
+        // require(amount > 0, "Amount must be greater than 0");
         require(
             tokenA.transferFrom(msg.sender, address(this), amount),
             "Token transfer failed"
         );
 
-        deposits[msg.sender].push(Deposit({
-            amount: amount,
-            depositTime: block.timestamp,
-            apr: apr // store current APR
-        }));
+        deposits[msg.sender].push(
+            Deposit({
+                amount: amount,
+                depositTime: block.timestamp,
+                apr: apr // store current APR
+            })
+        );
 
         emit DepositMade(msg.sender, amount, block.timestamp);
 
@@ -62,8 +68,7 @@ contract DepositReward is Ownable {
 
         uint256 amount = userDeposit.amount;
         userDeposit.amount = 0;
-
-        require(tokenA.transfer(msg.sender, amount), "Token transfer failed");
+        require(tokenA.transferFrom(msg.sender, address(this),amount), "Token transfer failed");
         emit Withdraw(msg.sender, amount);
     }
 
@@ -87,7 +92,9 @@ contract DepositReward is Ownable {
     }
 
     // Function to get all deposits for a user
-    function getDeposits(address user) external view returns (Deposit[] memory) {
+    function getDeposits(
+        address user
+    ) external view returns (Deposit[] memory) {
         return deposits[user];
     }
 }

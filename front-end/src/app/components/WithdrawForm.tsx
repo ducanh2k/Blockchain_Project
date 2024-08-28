@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, message } from 'antd';
-import { ethers } from 'ethers';
+import React, { useState } from "react";
+import { Form, Input, Button, message } from "antd";
+import { ethers } from "ethers";
 
 interface WithdrawFormProps {
   signer: ethers.Signer;
 }
+
+const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
+const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
+const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
 
 const tokenAbi = [
   "function approve(address spender, uint256 amount) external returns (bool)",
@@ -19,18 +23,25 @@ const stakingAbi = [
 ];
 
 const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer }) => {
-  const [amount, setAmount] = useState<string>('');
+  const [amount, setAmount] = useState<string>("");
 
-  const handleWithdraw = async (action: 'withdraw' | 'claimReward') => {
+  const handleWithdraw = async (action: "withdraw" | "claimReward") => {
     try {
-      const contract = new ethers.Contract('0xCA915780d6d9b48bC2803E4a7AB983779e65F128', erc20Abi, signer);
-      const tx = action === 'withdraw'
-        ? await contract.withdraw(ethers.parseUnits(amount, 18))
-        : await contract.claimReward();
+      const contract = new ethers.Contract(stakingAddress, stakingAbi, signer);
+      const tx =
+        action === "withdraw"
+          ? await contract.withdraw(ethers.parseUnits(amount, 18), {
+              gasLimit: 500000,
+            })
+          : await contract.claimReward();
       await tx.wait();
-      message.success(`${action === 'withdraw' ? 'Withdraw' : 'Claim reward'} successful`);
+      message.success(
+        `${action === "withdraw" ? "Withdraw" : "Claim reward"} successful`
+      );
     } catch (error) {
-      message.error(`${action === 'withdraw' ? 'Withdraw' : 'Claim reward'} failed`);
+      message.error(
+        `${action === "withdraw" ? "Withdraw" : "Claim reward"} failed`
+      );
     }
   };
 
@@ -39,18 +50,18 @@ const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer }) => {
       <Form.Item label="Amount to Withdraw">
         <Input value={amount} onChange={(e) => setAmount(e.target.value)} />
       </Form.Item>
-      <Button type="primary" onClick={() => handleWithdraw('withdraw')}>
+      <Button type="primary" onClick={() => handleWithdraw("withdraw")}>
         Withdraw
       </Button>
-      <Button type="default" onClick={() => handleWithdraw('claimReward')} style={{ marginLeft: 10 }}>
+      <Button
+        type="default"
+        onClick={() => handleWithdraw("claimReward")}
+        style={{ marginLeft: 10 }}
+      >
         Claim Reward
       </Button>
     </Form>
   );
 };
-
-const erc20Abi: ethers.Interface | ethers.InterfaceAbi = [
-  // ABI for your ERC20 token, withdraw, and claim reward functions
-];
 
 export default WithdrawForm;

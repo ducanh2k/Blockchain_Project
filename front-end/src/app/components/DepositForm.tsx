@@ -5,10 +5,11 @@ import { useState } from "react";
 
 interface DepositFormProps {
   signer: ethers.Signer;
+  onDepositSuccess: () => void;
 }
 
-const tokenAddress = "0x7177f1345a32fBEB32E3fCe8a265909bF047df59";
-const stakingAddress = "0x4870b2e3850412Be2fAD50B4a260756b14398902";
+const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
+const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
 const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
 
 const tokenAbi = [
@@ -24,7 +25,7 @@ const stakingAbi = [
   "function balanceOf(address account) external view returns (uint256)",
 ];
 
-const DepositForm: React.FC<DepositFormProps> = ({ signer }) => {
+const DepositForm: React.FC<DepositFormProps> = ({ signer,onDepositSuccess }) => {
   const [amount, setAmount] = useState<string>("");
 
   const handleDeposit = async () => {
@@ -39,27 +40,18 @@ const DepositForm: React.FC<DepositFormProps> = ({ signer }) => {
         stakingAbi,
         signer
       );
-      // Parse amount to the correct format
       const parsedAmount = ethers.parseUnits(amount, 18);
-
-      // Approve the staking contract to spend tokens
-      console.log("Approving staking contract...");
       const approveTx = await tokenContract.approve(
         stakingAddress,
         parsedAmount
       );
       await approveTx.wait();
-      console.log("Approval successful");
-
-      // Deposit the tokens
-      console.log("Depositing tokens...");
       const depositTx = await rewardContract.deposit(parsedAmount, {
         gasLimit: 500000,
       });
       await depositTx.wait();
-      console.log("Deposit successful");
-
       message.success("Deposit successful");
+      onDepositSuccess();
     } catch (error) {
       console.error("Error during deposit:", error);
       message.error("Deposit failed");

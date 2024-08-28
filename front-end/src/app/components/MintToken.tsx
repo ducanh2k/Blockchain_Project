@@ -4,9 +4,10 @@ import { ethers } from "ethers";
 
 interface MintTokenProps {
   signer: ethers.Signer;
+  onMintComplete: () => void;
 }
-const tokenAddress = "0x7177f1345a32fBEB32E3fCe8a265909bF047df59";
-const stakingAddress = "0x4870b2e3850412Be2fAD50B4a260756b14398902";
+const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
+const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
 const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
 
 const tokenAbi = [
@@ -21,7 +22,7 @@ const stakingAbi = [
   "function balanceOf(address account) external view returns (uint256)",
 ];
 
-const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
+const MintToken: React.FC<MintTokenProps> = ({ signer,onMintComplete }) => {
   const [recipient, setRecipient] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
 
@@ -39,6 +40,7 @@ const MintToken: React.FC<MintTokenProps> = ({ signer }) => {
       );
       await tx.wait();
       message.success("Token minted successfully");
+      onMintComplete();
     } catch (error) {
       console.error("Minting failed:", error);
       message.error("Minting failed:" + error);
