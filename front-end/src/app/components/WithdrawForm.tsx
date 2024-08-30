@@ -1,64 +1,96 @@
-import React, { useState } from "react";
-import { Form, Input, Button, message } from "antd";
+import React, { useState, useEffect } from "react";
+import { Form, Button, message } from "antd";
 import { ethers } from "ethers";
 
 interface WithdrawFormProps {
   signer: ethers.Signer;
+  onWithdrawSuccess: () => void;
 }
 
-const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
-const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
-const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
-
-const tokenAbi = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function mintToken(address _to,uint256 _amount) public",
-  "function balanceOf(address account) external view returns (uint256)",
-];
+const stakingAddress = "0xc5170aB7bD41544f123c18F0E4F38783C63121F9";
 
 const stakingAbi = [
-  "function deposit(uint256 _amount) external",
-  "function withdraw(uint256 _amount) external",
-  "function balanceOf(address account) external view returns (uint256)",
+  "function withdraw() external",
+  "function claimReward() external",
+  "function getDeposits(address account) external view returns (tuple(uint256 amount, uint256 depositTime, uint256 apr)[])",
 ];
 
-const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer }) => {
-  const [amount, setAmount] = useState<string>("");
+const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer,onWithdrawSuccess }) => {
+  const [deposits, setDeposits] = useState<any[]>([]);
 
-  const handleWithdraw = async (action: "withdraw" | "claimReward") => {
+  useEffect(() => {
+    const fetchDeposits = async () => {
+      try {
+        const contract = new ethers.Contract(
+          stakingAddress,
+          stakingAbi,
+          signer
+        );
+        const userDeposits = await contract.getDeposits(
+          await signer.getAddress()
+        );
+        setDeposits(userDeposits);
+      } catch (error) {
+        console.error("Error fetching deposits:", error);
+        message.error("Failed to fetch deposits");
+      }
+    };
+
+    fetchDeposits();
+  }, [signer]);
+
+  const handleWithdraw = async () => {
     try {
       const contract = new ethers.Contract(stakingAddress, stakingAbi, signer);
-      const tx =
-        action === "withdraw"
-          ? await contract.withdraw(ethers.parseUnits(amount, 18), {
-              gasLimit: 500000,
-            })
-          : await contract.claimReward();
+      const tx = await contract.withdraw({ gasLimit: 500000 });
       await tx.wait();
-      message.success(
-        `${action === "withdraw" ? "Withdraw" : "Claim reward"} successful`
-      );
+      message.success("Withdraw successful");
+      onWithdrawSuccess();
     } catch (error) {
-      message.error(
-        `${action === "withdraw" ? "Withdraw" : "Claim reward"} failed`
-      );
+      console.error("Error during withdrawal:", error);
+      message.error("Withdraw failed");
+    }
+  };
+
+  const handleClaimReward = async () => {
+    try {
+      const contract = new ethers.Contract(stakingAddress, stakingAbi, signer);
+      const tx = await contract.claimReward({ gasLimit: 500000 });
+      await tx.wait();
+      message.success("Claim reward successful");
+    } catch (error) {
+      console.error("Error during reward claim:", error);
+      message.error("Claim reward failed");
     }
   };
 
   return (
     <Form layout="vertical">
-      <Form.Item label="Amount to Withdraw">
-        <Input value={amount} onChange={(e) => setAmount(e.target.value)} />
-      </Form.Item>
-      <Button type="primary" onClick={() => handleWithdraw("withdraw")}>
-        Withdraw
+      {deposits.length > 0 && (
+        <div>
+          <h4>Your Deposits:</h4>
+          <ul>
+            {deposits.map((deposit, index) => (
+              <li key={index}>
+                Deposit {index + 1}: {ethers.formatUnits(deposit.amount, 18)}{" "}
+                TOKEN - Locked until{" "}
+                {new Date(
+                  (Number(deposit.depositTime) + 5 * 60) * 1000
+                ).toLocaleString()}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <Button type="primary" onClick={handleWithdraw}>
+        Withdraw All
       </Button>
       <Button
         type="default"
-        onClick={() => handleWithdraw("claimReward")}
+        onClick={handleClaimReward}
         style={{ marginLeft: 10 }}
       >
-        Claim Reward
+        Claim All Rewards
       </Button>
     </Form>
   );

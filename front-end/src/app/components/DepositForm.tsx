@@ -8,9 +8,8 @@ interface DepositFormProps {
   onDepositSuccess: () => void;
 }
 
-const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
-const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
-const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
+const tokenAddress = "0x801ed2ac974E3e48B8c4DeDAcb8042680592eF82";
+const stakingAddress = "0xc5170aB7bD41544f123c18F0E4F38783C63121F9";
 
 const tokenAbi = [
   "function approve(address spender, uint256 amount) external returns (bool)",

@@ -6,13 +6,11 @@ interface MintTokenProps {
   signer: ethers.Signer;
   onMintComplete: () => void;
 }
-const tokenAddress = "0x4236160D4c4f3b1aAca9722EB60024828DE92976";
-const stakingAddress = "0x823F10728B618b4bb8cB6a552eA5d9c5c6C66EA2";
-const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
+const tokenAddress = "0x801ed2ac974E3e48B8c4DeDAcb8042680592eF82";
 
 const tokenAbi = [
   "function approve(address spender, uint256 amount) external returns (bool)",
-  "function mintToken(address _to,uint256 _amount) public",
+  "function transferToken(address _to,uint256 _amount) public",
   "function balanceOf(address account) external view returns (uint256)",
 ];
 
@@ -34,16 +32,15 @@ const MintToken: React.FC<MintTokenProps> = ({ signer,onMintComplete }) => {
       }
 
       const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
-      const tx = await tokenContract.mintToken(
+      const tx = await tokenContract.transferToken(
         recipient,
         ethers.parseUnits(amount, 18)
       );
       await tx.wait();
-      message.success("Token minted successfully");
+      message.success("Transfer Token successfully");
       onMintComplete();
     } catch (error) {
-      console.error("Minting failed:", error);
-      message.error("Minting failed:" + error);
+      message.error("Transfer failed:" + error);
     }
   };
 
@@ -56,15 +53,15 @@ const MintToken: React.FC<MintTokenProps> = ({ signer,onMintComplete }) => {
           placeholder="Enter recipient address"
         />
       </Form.Item>
-      <Form.Item label="Amount to Mint">
+      <Form.Item label="Amount to Transfer">
         <Input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="Enter amount to mint"
+          placeholder="Enter amount to Transfer"
         />
       </Form.Item>
       <Button type="primary" onClick={handleMint}>
-        Mint Tokens
+        Transfer Tokens
       </Button>
     </Form>
   );

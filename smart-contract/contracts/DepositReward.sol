@@ -2,6 +2,8 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./NFTB.sol";
+import "./TokenA.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DepositReward is Ownable {
@@ -10,6 +12,8 @@ contract DepositReward is Ownable {
     uint256 public constant TOKEN_THRESHOLD = 1_000_000 * 10 ** 18;
     uint256 public constant LOCK_PERIOD = 5 minutes;
     uint256 public apr = 8;
+
+    TokenA public tokenAa;
 
     struct Deposit {
         uint256 amount;
@@ -28,26 +32,26 @@ contract DepositReward is Ownable {
     event RewardClaimed(address indexed user, uint256 reward);
     event APRUpdated(uint256 newAPR);
 
-    constructor(address _tokenA, address _nftB) Ownable(msg.sender) {
-        tokenA = IERC20(_tokenA);
-        nftB = NFTB(_nftB);
+    constructor(
+        IERC20 _tokenA,
+        NFTB _nftB,
+        TokenA _tokenAa
+    ) Ownable(msg.sender) {
+        tokenA = _tokenA;
+        nftB = _nftB;
+        tokenAa = _tokenAa;
     }
 
     // Allow users to deposit TokenA
     function deposit(uint256 amount) external {
         require(amount >= TOKEN_THRESHOLD, "Amount too small");
-        // require(amount > 0, "Amount must be greater than 0");
         require(
             tokenA.transferFrom(msg.sender, address(this), amount),
             "Token transfer failed"
         );
 
         deposits[msg.sender].push(
-            Deposit({
-                amount: amount,
-                depositTime: block.timestamp,
-                apr: apr // store current APR
-            })
+            Deposit({amount: amount, depositTime: block.timestamp, apr: apr})
         );
 
         emit DepositMade(msg.sender, amount, block.timestamp);
@@ -58,31 +62,54 @@ contract DepositReward is Ownable {
     }
 
     // Allow users to withdraw their deposits after the lock period
-    function withdraw(uint256 index) external {
-        Deposit storage userDeposit = deposits[msg.sender][index];
-        require(userDeposit.amount > 0, "Deposit already withdrawn");
+    function withdraw() external {
+        uint256 totalWithdrawn = 0;
+
+        for (uint256 i = 0; i < deposits[msg.sender].length; i++) {
+            Deposit storage userDeposit = deposits[msg.sender][i];
+            if (
+                userDeposit.amount > 0 &&
+                block.timestamp >= userDeposit.depositTime + LOCK_PERIOD
+            ) {
+                totalWithdrawn += userDeposit.amount;
+                userDeposit.amount = 0;
+            }
+        }
+
         require(
-            block.timestamp >= userDeposit.depositTime + LOCK_PERIOD,
-            "Tokens are still locked"
+            totalWithdrawn > 0,
+            "No tokens available for withdrawal or tokens are still locked"
+        );
+        require(
+            tokenA.transfer(msg.sender, totalWithdrawn),
+            "Token transfer failed"
         );
 
-        uint256 amount = userDeposit.amount;
-        userDeposit.amount = 0;
-        require(tokenA.transferFrom(msg.sender, address(this),amount), "Token transfer failed");
-        emit Withdraw(msg.sender, amount);
+        emit Withdraw(msg.sender, totalWithdrawn);
     }
 
-    // Allow users to claim rewards based on the APR
-    function claimReward(uint256 index) external {
-        Deposit storage userDeposit = deposits[msg.sender][index];
-        require(
-            block.timestamp >= userDeposit.depositTime + LOCK_PERIOD,
-            "Tokens are still locked"
-        );
+    // Allow users to claim rewards for all deposits
+    function claimReward() external {
+        uint256 totalReward = 0;
+        uint256 secondsInAYear = 365 * 24 * 60 * 60;
 
-        uint256 reward = (userDeposit.amount * userDeposit.apr) / 100;
-        require(tokenA.transfer(msg.sender, reward), "Token transfer failed");
-        emit RewardClaimed(msg.sender, reward);
+        for (uint256 i = 0; i < deposits[msg.sender].length; i++) {
+            Deposit storage userDeposit = deposits[msg.sender][i];
+            if (
+                block.timestamp >= userDeposit.depositTime + LOCK_PERIOD &&
+                userDeposit.amount > 0
+            ) {
+                uint256 timeStaked = block.timestamp - userDeposit.depositTime;
+                uint256 reward = (userDeposit.amount *
+                    userDeposit.apr *
+                    timeStaked) / (100 * secondsInAYear);
+                totalReward += reward;
+            }
+        }
+
+        require(totalReward > 0, "No rewards available to claim");
+        tokenAa.transferToken(msg.sender, totalReward);
+        emit RewardClaimed(msg.sender, totalReward);
     }
 
     // Admin function to update the APR

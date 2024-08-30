@@ -5,7 +5,9 @@ export default buildModule("contractDeployment", (m) => {
 
   const nftB = m.contract("NFTB");
 
-  const depositReward = m.contract("DepositReward", [tokenA, nftB]);
+  const depositReward = m.contract("DepositReward", [tokenA, nftB, tokenA]);
+
+  // m.call(tokenA, "setStaking",  [depositReward]);
 
   return { tokenA, nftB, depositReward };
 });
