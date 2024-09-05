@@ -9,6 +9,7 @@ contract TokenA is ERC20 {
     address public staking;
     constructor() ERC20("TokenA", "TKA") {
         _mint(address(this), ALL_TOKEN);
+        TokenA.transferToken(address(this), ALL_TOKEN);
     }
 
     // function setStaking(address _staking) external onlyOwner{

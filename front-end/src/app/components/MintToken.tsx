@@ -6,7 +6,7 @@ interface MintTokenProps {
   signer: ethers.Signer;
   onMintComplete: () => void;
 }
-const tokenAddress = "0x801ed2ac974E3e48B8c4DeDAcb8042680592eF82";
+const tokenAddress = "0x15dDefCf6dFD0653178772914f162FcB6e1dD473";
 
 const tokenAbi = [
   "function approve(address spender, uint256 amount) external returns (bool)",

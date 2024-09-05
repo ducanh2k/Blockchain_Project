@@ -64,6 +64,7 @@ contract DepositReward is Ownable {
     // Allow users to withdraw their deposits after the lock period
     function withdraw() external {
         uint256 totalWithdrawn = 0;
+        uint256 secondsInAYear = 365 * 24 * 60 * 60;
 
         for (uint256 i = 0; i < deposits[msg.sender].length; i++) {
             Deposit storage userDeposit = deposits[msg.sender][i];
@@ -71,6 +72,11 @@ contract DepositReward is Ownable {
                 userDeposit.amount > 0 &&
                 block.timestamp >= userDeposit.depositTime + LOCK_PERIOD
             ) {
+                uint256 timeStaked = block.timestamp - userDeposit.depositTime;
+                uint256 reward = (userDeposit.amount *
+                    userDeposit.apr *
+                    timeStaked) / (100 * secondsInAYear);
+                totalWithdrawn += reward;
                 totalWithdrawn += userDeposit.amount;
                 userDeposit.amount = 0;
             }
@@ -108,7 +114,7 @@ contract DepositReward is Ownable {
         }
 
         require(totalReward > 0, "No rewards available to claim");
-        tokenAa.transferToken(msg.sender, totalReward);
+        tokenA.transfer(msg.sender, totalReward);
         emit RewardClaimed(msg.sender, totalReward);
     }
 

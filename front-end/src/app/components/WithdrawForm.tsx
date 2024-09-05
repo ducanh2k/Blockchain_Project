@@ -7,7 +7,7 @@ interface WithdrawFormProps {
   onWithdrawSuccess: () => void;
 }
 
-const stakingAddress = "0xc5170aB7bD41544f123c18F0E4F38783C63121F9";
+const stakingAddress = "0xEcdB4CC39e4FdC005A39F161919DD5d8ecd759b4";
 
 const stakingAbi = [
   "function withdraw() external",
@@ -15,7 +15,10 @@ const stakingAbi = [
   "function getDeposits(address account) external view returns (tuple(uint256 amount, uint256 depositTime, uint256 apr)[])",
 ];
 
-const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer,onWithdrawSuccess }) => {
+const WithdrawForm: React.FC<WithdrawFormProps> = ({
+  signer,
+  onWithdrawSuccess,
+}) => {
   const [deposits, setDeposits] = useState<any[]>([]);
 
   useEffect(() => {
@@ -68,20 +71,19 @@ const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer,onWithdrawSuccess })
     <Form layout="vertical">
       {deposits.length > 0 && (
         <div>
-          <h4>Your Deposits:</h4>
+          <h4>Your Last Deposit:</h4>
           <ul>
-            {deposits.map((deposit, index) => (
-              <li key={index}>
-                Deposit {index + 1}: {ethers.formatUnits(deposit.amount, 18)}{" "}
-                TOKEN - Locked until{" "}
-                {new Date(
-                  (Number(deposit.depositTime) + 5 * 60) * 1000
-                ).toLocaleString()}
-              </li>
-            ))}
+            <li>
+              Locked until{" "}
+              {new Date(
+                (Number(deposits[deposits.length - 1].depositTime) + 5 * 60) *
+                  1000
+              ).toLocaleString()}
+            </li>
           </ul>
         </div>
       )}
+      {<br />}
       <Button type="primary" onClick={handleWithdraw}>
         Withdraw All
       </Button>
@@ -92,6 +94,11 @@ const WithdrawForm: React.FC<WithdrawFormProps> = ({ signer,onWithdrawSuccess })
       >
         Claim All Rewards
       </Button>
+      {
+        <div>
+          <br />
+        </div>
+      }
     </Form>
   );
 };

@@ -10,8 +10,8 @@ import TransactionHistory from "./components/TransactionHistory";
 import MintToken from "./components/MintToken"; 
 import Link from "next/link";
 
-const tokenAddress = "0x801ed2ac974E3e48B8c4DeDAcb8042680592eF82";
-const stakingAddress = "0xc5170aB7bD41544f123c18F0E4F38783C63121F9";
+const tokenAddress = "0x15dDefCf6dFD0653178772914f162FcB6e1dD473";
+const stakingAddress = "0xEcdB4CC39e4FdC005A39F161919DD5d8ecd759b4";
 const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
 
 const tokenAbi = [
@@ -36,7 +36,6 @@ const Home: React.FC = () => {
   // State for balances
   const [tokenBalance, setTokenBalance] = useState<string>("0");
   const [depositBalance, setDepositBalance] = useState<string>("0");
-  const [withdrawBalance, setWithdrawBalance] = useState<string>("0");
 
   const fetchBalances = async (signer: ethers.Signer) => {
     try {
@@ -65,6 +64,7 @@ const Home: React.FC = () => {
   ) => {
     setSigner(userSigner);
     setAddress(userAddress);
+    localStorage.setItem("walletAddress", userAddress);
     await fetchBalances(userSigner);
   };
 
@@ -92,7 +92,7 @@ const Home: React.FC = () => {
       </Sider>
       <Layout>
         <Header>
-          <Title style={{ color: "white", textAlign: "center" }} level={2}>
+          <Title style={{ color: "white", textAlign: "center",marginTop: "10px" }} level={2}>
             ERC20 Token Staking dApp
           </Title>
         </Header>
@@ -101,14 +101,14 @@ const Home: React.FC = () => {
           {signer ? (
             <div>
               <div style={{ marginTop: "20px", color: "black" }}>
-                <p>Token Balance: {tokenBalance} TOKEN</p>
-                <p>Deposit Balance: {depositBalance} TOKEN</p>
-                <p>Withdraw Balance: {withdrawBalance} TOKEN</p>
+                <p>Wallet Balance: {tokenBalance} TOKEN</p>
+                <p>Deposit : {depositBalance} TOKEN</p>
+                {/* <p>Withdraw Balance: {withdrawBalance} TOKEN</p> */}
               </div>
               <MintToken signer={signer} onMintComplete={() => fetchBalances(signer)}/>
               <DepositForm signer={signer} onDepositSuccess={() => fetchBalances(signer)} />
               <WithdrawForm signer={signer} onWithdrawSuccess={() => fetchBalances(signer)} />
-              <TransactionHistory address={address} />
+              {/* <TransactionHistory address={address} /> */}
             </div>
           ) : (
             <p>
