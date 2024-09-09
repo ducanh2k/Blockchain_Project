@@ -1,27 +1,32 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./NFTB.sol";
 import "./TokenA.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DepositReward is Ownable {
+contract DepositReward is Ownable, IERC721Receiver {
     IERC20 public tokenA;
     NFTB public nftB;
     uint256 public constant TOKEN_THRESHOLD = 1_000_000 * 10 ** 18;
-    uint256 public constant LOCK_PERIOD = 5 minutes;
-    uint256 public apr = 8;
+    uint256 public constant ALL_TOKEN_REWARD = 100_000_000 * 10 ** 18;
+    uint256 public constant LOCK_PERIOD = 1 minutes;
+    uint256 public baseAPR = 8; // Base APR
 
-    TokenA public tokenAa;
+    TokenA public token_A;
 
     struct Deposit {
         uint256 amount;
         uint256 depositTime;
-        uint256 apr; // store APR at the time of deposit
+        uint256 aprAtDeposit;
+        uint256 claimedReward;
+        bool rewardClaimed;
     }
 
     mapping(address => Deposit[]) public deposits;
+    mapping(address => uint256) public userAPR;
 
     event DepositMade(
         address indexed user,
@@ -31,18 +36,24 @@ contract DepositReward is Ownable {
     event Withdraw(address indexed user, uint256 amount);
     event RewardClaimed(address indexed user, uint256 reward);
     event APRUpdated(uint256 newAPR);
+    event NFTBDeposited(address indexed user, uint256 tokenId);
+    event NFTBWithdrawn(address indexed user, uint256 tokenId);
 
     constructor(
         IERC20 _tokenA,
         NFTB _nftB,
-        TokenA _tokenAa
+        TokenA _token_A
     ) Ownable(msg.sender) {
         tokenA = _tokenA;
         nftB = _nftB;
-        tokenAa = _tokenAa;
+        token_A = _token_A;
+        token_A.mintToken(address(this), ALL_TOKEN_REWARD);
     }
 
-    // Allow users to deposit TokenA
+    function getUserAPR(address user) public view returns (uint256) {
+        return userAPR[user];
+    }
+
     function deposit(uint256 amount) external {
         require(amount >= TOKEN_THRESHOLD, "Amount too small");
         require(
@@ -50,18 +61,42 @@ contract DepositReward is Ownable {
             "Token transfer failed"
         );
 
+        uint256 currentAPR = getUserAPR(msg.sender);
         deposits[msg.sender].push(
-            Deposit({amount: amount, depositTime: block.timestamp, apr: apr})
+            Deposit({
+                amount: amount,
+                depositTime: block.timestamp,
+                aprAtDeposit: currentAPR,
+                claimedReward: 0,
+                rewardClaimed: false
+            })
         );
 
         emit DepositMade(msg.sender, amount, block.timestamp);
-
-        if (amount >= TOKEN_THRESHOLD) {
-            nftB.mint(msg.sender);
-        }
     }
 
-    // Allow users to withdraw their deposits after the lock period
+    function depositNFTB(uint256 tokenId) external {
+        require(nftB.ownerOf(tokenId) == msg.sender, "You don't own this NFTB");
+        nftB.safeTransferFrom(msg.sender, address(this), tokenId); // Transfer NFT to contract
+        userAPR[msg.sender] = getUserAPR(msg.sender) + 2;
+        updateAPRForUser(msg.sender);
+
+        emit NFTBDeposited(msg.sender, tokenId);
+    }
+
+    function withdrawNFTB(uint256 tokenId) external {
+        require(
+            nftB.ownerOf(tokenId) == address(this),
+            "Contract doesn't own this NFTB"
+        );
+        nftB.safeTransferFrom(address(this), msg.sender, tokenId); // Transfer NFT back to user
+        userAPR[msg.sender] = getUserAPR(msg.sender) - 2;
+        updateAPRForUser(msg.sender);
+
+        emit NFTBWithdrawn(msg.sender, tokenId);
+    }
+
+    // Withdraw Token A and rewards
     function withdraw() external {
         uint256 totalWithdrawn = 0;
         uint256 secondsInAYear = 365 * 24 * 60 * 60;
@@ -73,18 +108,28 @@ contract DepositReward is Ownable {
                 block.timestamp >= userDeposit.depositTime + LOCK_PERIOD
             ) {
                 uint256 timeStaked = block.timestamp - userDeposit.depositTime;
-                uint256 reward = (userDeposit.amount *
-                    userDeposit.apr *
+                uint256 totalReward = (userDeposit.amount *
+                    baseAPR *
                     timeStaked) / (100 * secondsInAYear);
-                totalWithdrawn += reward;
-                totalWithdrawn += userDeposit.amount;
+
+                uint256 totalAmountToWithdraw = userDeposit.amount +
+                    totalReward;
+
+                if (userDeposit.rewardClaimed) {
+                    totalWithdrawn += userDeposit.amount;
+                } else {
+                    totalWithdrawn += totalAmountToWithdraw;
+                }
+
                 userDeposit.amount = 0;
+                userDeposit.claimedReward = totalReward;
+                userDeposit.rewardClaimed = true;
             }
         }
 
         require(
             totalWithdrawn > 0,
-            "No tokens available for withdrawal or tokens are still locked"
+            "No tokens available for withdrawal or still locked"
         );
         require(
             tokenA.transfer(msg.sender, totalWithdrawn),
@@ -94,7 +139,6 @@ contract DepositReward is Ownable {
         emit Withdraw(msg.sender, totalWithdrawn);
     }
 
-    // Allow users to claim rewards for all deposits
     function claimReward() external {
         uint256 totalReward = 0;
         uint256 secondsInAYear = 365 * 24 * 60 * 60;
@@ -106,28 +150,47 @@ contract DepositReward is Ownable {
                 userDeposit.amount > 0
             ) {
                 uint256 timeStaked = block.timestamp - userDeposit.depositTime;
-                uint256 reward = (userDeposit.amount *
-                    userDeposit.apr *
+                 totalReward = (userDeposit.amount *
+                    baseAPR *
                     timeStaked) / (100 * secondsInAYear);
-                totalReward += reward;
+
+                userDeposit.claimedReward += totalReward;
+                userDeposit.rewardClaimed = true;
             }
         }
 
-        require(totalReward > 0, "No rewards available to claim");
-        tokenA.transfer(msg.sender, totalReward);
+        require(
+            tokenA.transfer(msg.sender, totalReward),
+            "Token transfer failed"
+        );
+
         emit RewardClaimed(msg.sender, totalReward);
     }
 
-    // Admin function to update the APR
-    function setAPR(uint256 newAPR) external onlyOwner {
-        apr = newAPR;
+    function setBaseAPR(uint256 newAPR) external onlyOwner {
+        baseAPR = newAPR;
         emit APRUpdated(newAPR);
     }
 
-    // Function to get all deposits for a user
     function getDeposits(
         address user
     ) external view returns (Deposit[] memory) {
         return deposits[user];
+    }
+
+    function updateAPRForUser(address user) internal {
+        uint256 currentAPR = getUserAPR(user);
+        for (uint256 i = 0; i < deposits[user].length; i++) {
+            deposits[user][i].aprAtDeposit = currentAPR;
+        }
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }

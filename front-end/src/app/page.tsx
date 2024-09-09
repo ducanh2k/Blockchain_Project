@@ -10,8 +10,8 @@ import TransactionHistory from "./components/TransactionHistory";
 import MintToken from "./components/MintToken"; 
 import Link from "next/link";
 
-const tokenAddress = "0x15dDefCf6dFD0653178772914f162FcB6e1dD473";
-const stakingAddress = "0xEcdB4CC39e4FdC005A39F161919DD5d8ecd759b4";
+const tokenAddress = "0x2D189aDe1603E23E0Bce7FCBB7e33D87f814C3cB";
+const stakingAddress = "0xF0CE63286F919Ab97aa3Deea0475BED1dd307d99";
 const wallet_address = "0x75B9803fc26EEe1e44217D994d13D93525DE3f80";
 
 const tokenAbi = [

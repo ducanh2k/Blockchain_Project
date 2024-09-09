@@ -15,7 +15,7 @@ import { ethers } from "ethers";
 
 const { Title } = Typography;
 
-const address_staking = "0xEcdB4CC39e4FdC005A39F161919DD5d8ecd759b4";
+const address_staking = "0xF0CE63286F919Ab97aa3Deea0475BED1dd307d99";
 
 const AdminPanel: React.FC = () => {
   const [apr, setApr] = useState<number>(8);

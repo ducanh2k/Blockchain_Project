@@ -34,7 +34,7 @@ const Transaction = mongoose.model("Transaction", transactionSchema);
 const provider = new ethers.JsonRpcProvider(
   "https://bsc-testnet.infura.io/v3/a4f44717a79d4c159f24bb89bc2642dd"
 );
-const contractAddress = "0xEcdB4CC39e4FdC005A39F161919DD5d8ecd759b4";
+const contractAddress = "0xF0CE63286F919Ab97aa3Deea0475BED1dd307d99";
 const abi = [
   "event DepositMade(address indexed user, uint256 amount, uint256 depositTime)",
   "event Withdraw(address indexed user, uint256 amount)",
@@ -107,8 +107,7 @@ async function fetchTransactionHistory() {
   try {
     console.log("Fetching transaction history...");
     const latestBlock = await provider.getBlockNumber();
-    const fromBlock = 43566088; // Change to your desired starting block
-
+    const fromBlock = 43624806; 
     // Fetch DepositMade events
     const depositFilter = contract.filters.DepositMade();
     const depositEvents = await fetchEventsInRange(
