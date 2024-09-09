@@ -15,7 +15,7 @@ import { ethers } from "ethers";
 
 const { Title } = Typography;
 
-const address_staking = "0xF0CE63286F919Ab97aa3Deea0475BED1dd307d99";
+const address_staking = "0xFA59E603266fe375287fEc7fc027b2B502f05286";
 
 const AdminPanel: React.FC = () => {
   const [apr, setApr] = useState<number>(8);
@@ -57,7 +57,7 @@ const AdminPanel: React.FC = () => {
         adminAbi,
         await signer
       );
-      const tx = await contract.updateApr(apr);
+      const tx = await contract.setBaseAPR(apr);
       await tx.wait();
       message.success("APR updated successfully");
     } catch (error) {
@@ -124,6 +124,7 @@ const AdminPanel: React.FC = () => {
 };
 
 const adminAbi: any = [
+  "function setBaseAPR(uint256 newAPR) external",
   "function deposit(uint256 _amount) public",
   "function deposits(address account) external view returns (uint256)",
   "function withdraw(uint256 _amount) external",

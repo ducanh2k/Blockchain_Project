@@ -34,7 +34,7 @@ const Transaction = mongoose.model("Transaction", transactionSchema);
 const provider = new ethers.JsonRpcProvider(
   "https://bsc-testnet.infura.io/v3/a4f44717a79d4c159f24bb89bc2642dd"
 );
-const contractAddress = "0xF0CE63286F919Ab97aa3Deea0475BED1dd307d99";
+const contractAddress = "0xFA59E603266fe375287fEc7fc027b2B502f05286";
 const abi = [
   "event DepositMade(address indexed user, uint256 amount, uint256 depositTime)",
   "event Withdraw(address indexed user, uint256 amount)",

@@ -10,9 +10,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract DepositReward is Ownable, IERC721Receiver {
     IERC20 public tokenA;
     NFTB public nftB;
-    uint256 public constant TOKEN_THRESHOLD = 1_000_000 * 10 ** 18;
+    uint256 public constant TOKEN_THRESHOLD = 1_000_000 * 10 ** 18; // 1 triệu token
     uint256 public constant ALL_TOKEN_REWARD = 100_000_000 * 10 ** 18;
-    uint256 public constant LOCK_PERIOD = 1 minutes;
+    uint256 public constant LOCK_PERIOD = 5 minutes; // Lock thời gian 5 phút cho testing
     uint256 public baseAPR = 8; // Base APR
 
     TokenA public token_A;
@@ -37,6 +37,7 @@ contract DepositReward is Ownable, IERC721Receiver {
     event RewardClaimed(address indexed user, uint256 reward);
     event APRUpdated(uint256 newAPR);
     event NFTBDeposited(address indexed user, uint256 tokenId);
+    event NFTBMinted(address indexed user, uint256 tokenId); // Event for minting NFT
     event NFTBWithdrawn(address indexed user, uint256 tokenId);
 
     constructor(
@@ -47,7 +48,7 @@ contract DepositReward is Ownable, IERC721Receiver {
         tokenA = _tokenA;
         nftB = _nftB;
         token_A = _token_A;
-        token_A.mintToken(address(this), ALL_TOKEN_REWARD);
+        token_A.mintToken(address(this), ALL_TOKEN_REWARD); // Mint tổng reward
     }
 
     function getUserAPR(address user) public view returns (uint256) {
@@ -71,6 +72,10 @@ contract DepositReward is Ownable, IERC721Receiver {
                 rewardClaimed: false
             })
         );
+
+        if (amount >= TOKEN_THRESHOLD) {
+            nftB.mint(msg.sender);
+        }
 
         emit DepositMade(msg.sender, amount, block.timestamp);
     }
@@ -150,9 +155,9 @@ contract DepositReward is Ownable, IERC721Receiver {
                 userDeposit.amount > 0
             ) {
                 uint256 timeStaked = block.timestamp - userDeposit.depositTime;
-                 totalReward = (userDeposit.amount *
-                    baseAPR *
-                    timeStaked) / (100 * secondsInAYear);
+                totalReward =
+                    (userDeposit.amount * baseAPR * timeStaked) /
+                    (100 * secondsInAYear);
 
                 userDeposit.claimedReward += totalReward;
                 userDeposit.rewardClaimed = true;
