@@ -12,13 +12,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@walletconnect/web3-provider": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.1",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
-    "web3": "^4.12.1"
+    "web3": "^4.12.1",
+    "web3modal": "^1.9.12"
   }
 }

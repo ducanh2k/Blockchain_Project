@@ -2,13 +2,15 @@ const express = require("express");
 const mongoose = require("mongoose");
 const schedule = require("node-schedule");
 const ethers = require("ethers");
-const cors = require("cors"); // Import cors
+const cors = require("cors");
 const dotenv = require("dotenv");
+const jwt = require("jsonwebtoken");
+
 const app = express();
 
-// Sử dụng CORS middleware để cho phép truy cập từ frontend
+dotenv.config();
 app.use(cors());
-app.use(express.json()); // Middleware để Express có thể parse JSON
+app.use(express.json());
 
 // MongoDB setup
 mongoose
@@ -18,6 +20,14 @@ mongoose
     console.error("MongoDB connection error:", error);
     process.exit(1);
   });
+
+// Define User schema for MetaMask login
+const userSchema = new mongoose.Schema({
+  publicAddress: { type: String, unique: true, required: true },
+  nonce: { type: Number, default: () => Math.floor(Math.random() * 1000000) },
+});
+
+const User = mongoose.model("User", userSchema);
 
 // Define the Transaction schema
 const transactionSchema = new mongoose.Schema({
@@ -29,6 +39,8 @@ const transactionSchema = new mongoose.Schema({
 });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);
+
+const JWT_SECRET = process.env.JWT_SECRET || "qkeTOR5lJ6dguqhHF6PuyI9x5HG9WhJZ";
 
 // Blockchain interaction setup
 const provider = new ethers.JsonRpcProvider(
@@ -107,7 +119,7 @@ async function fetchTransactionHistory() {
   try {
     console.log("Fetching transaction history...");
     const latestBlock = await provider.getBlockNumber();
-    const fromBlock = 43624806; 
+    const fromBlock = 43717956;
     // Fetch DepositMade events
     const depositFilter = contract.filters.DepositMade();
     const depositEvents = await fetchEventsInRange(
@@ -147,7 +159,7 @@ async function fetchTransactionHistory() {
   }
 }
 
-// Schedule the cron job to fetch transaction history every minute
+// Schedule the cron job to fetch transaction history every 5 minutes
 const job = schedule.scheduleJob("*/5 * * * *", function () {
   console.log("Running scheduled task...");
   fetchTransactionHistory().catch((error) => {
@@ -155,7 +167,86 @@ const job = schedule.scheduleJob("*/5 * * * *", function () {
   });
 });
 
-// Set up your other API routes
+// API to fetch nonce from MetaMask
+app.get("/api/getNonce", async (req, res) => {
+  const { address } = req.query;
+
+  if (!address) {
+    return res.status(400).json({ message: "Address is required." });
+  }
+
+  let user = await User.findOne({ publicAddress: address.toLowerCase() });
+
+  // if user doesn't exist, create a new one
+  if (!user) {
+    user = new User({ publicAddress: address.toLowerCase() });
+    await user.save();
+  }
+
+  return res.json({ nonce: user.nonce });
+});
+
+// API sign in with MetaMask
+app.post("/signin", async (req, res) => {
+  const { address, signature, message } = req.body;
+
+  if (!address || !signature || !message) {
+    return res.status(400).json({ message: "Request not valid!" });
+  }
+
+  try {
+    // Tìm người dùng theo địa chỉ ví
+    const user = await User.findOne({ publicAddress: address.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    console.log(message, signature);
+    let signerAddress;
+    try {
+      signerAddress = ethers.verifyMessage(message, signature); 
+    } catch (e) {
+      return res.status(500).json({ message: "Verification failed." });
+    }
+
+    if (signerAddress.toLowerCase() !== address.toLowerCase()) {
+      return res.status(401).json({ message: "Signature not valid!" });
+    }
+
+    // Cập nhật nonce trong database
+    user.nonce = Math.floor(Math.random() * 1000000);
+    await user.save();
+
+    // Tạo JWT token
+    const token = jwt.sign({ address: user.publicAddress }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    return res.json({ token });
+  } catch (error) {
+    console.error("Error in sign-in process:", error);
+    return res.status(500).json({ message: "Sign-in failed!" });
+  }
+});
+
+// Middleware protecting routes required authentication
+function authenticateToken(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token)
+    return res.status(401).json({ message: "Access token required." });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: "Invalid token." });
+    req.user = user;
+    next();
+  });
+}
+
+// API protected required authentication
+app.get("/api/protected", authenticateToken, (req, res) => {
+  res.json({ message: `Welcome user with address: ${req.user.address}` });
+});
+
+// API fetch transactions
 app.get("/api/transactions", async (req, res) => {
   const { address } = req.query;
   try {
