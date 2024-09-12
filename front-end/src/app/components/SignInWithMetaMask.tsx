@@ -39,7 +39,7 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({
 
         // Call API to fetch nonce from backend
         const nonceResponse = await fetch(
-          `http://localhost:5000/api/getNonce?address=${userAddress}`
+          `http://18.140.3.110/api/getNonce?address=${userAddress}`
         );
         if (!nonceResponse.ok) {
           message.error("Failed to fetch nonce from the server.");
@@ -52,7 +52,7 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({
         const signature = await (await signer).signMessage(messageToSign);
 
         // Send signature and address to backend
-        const authResponse = await fetch("http://localhost:5000/signin", {
+        const authResponse = await fetch("http://18.140.3.110/signin", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -14,7 +14,7 @@ app.use(express.json());
 
 // MongoDB setup
 mongoose
-  .connect("mongodb://localhost:27017/blockchain")
+  .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected successfully"))
   .catch((error) => {
     console.error("MongoDB connection error:", error);
@@ -160,7 +160,7 @@ async function fetchTransactionHistory() {
 }
 
 // Schedule the cron job to fetch transaction history every 5 minutes
-const job = schedule.scheduleJob("*/5 * * * *", function () {
+const job = schedule.scheduleJob("*/1 * * * *", function () {
   console.log("Running scheduled task...");
   fetchTransactionHistory().catch((error) => {
     console.error("Scheduled task failed:", error);

@@ -30,7 +30,7 @@ const AdminPanel: React.FC = () => {
       const fetchTransactions = async () => {
         try {
           const { data } = await axios.get(
-            `http://localhost:5000/api/transactions?address=${walletAddress}`
+            `http://18.140.3.110/api/transactions?address=${walletAddress}`
           );
           setTransactions(
             data.transactions.map((transaction: any) => ({

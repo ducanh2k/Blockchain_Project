@@ -3,7 +3,7 @@ import { message, Table } from "antd";
 import axios from "axios";
 
 interface TransactionHistoryProps {
-  address: string; // Address người dùng cần truyền vào từ Home component
+  address: string; 
 }
 
 interface Transaction {
@@ -22,7 +22,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ address }) => {
       if (address) {
         try {
           const { data } = await axios.get(
-            `http://localhost:5000/api/transactions?address=${address}`
+            `http://18.140.3.110/api/transactions?address=${address}`
           );
           setTransactions(
             data.transactions.map((transaction: any) => ({
