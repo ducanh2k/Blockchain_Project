@@ -1,39 +1,45 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, message } from "antd";
 import { ethers } from "ethers";
+import { useWeb3ModalAccount, useDisconnect } from "@web3modal/ethers/react"; // Import hook for disconnecting wallet
 
 interface SignInWithMetaMaskProps {
   onSignIn: (address: string, signer: ethers.Signer) => void;
 }
 
-const BSC_TESTNET_CHAIN_ID = "0x61"; 
+const BSC_TESTNET_CHAIN_ID = "0x61";
 
 const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({
   onSignIn,
 }) => {
   const [account, setAccount] = useState<string | null>(null);
+  const { address, chainId, isConnected } = useWeb3ModalAccount(); // Use hook to fetch information from MetaMask
+  const { disconnect } = useDisconnect(); // Hook to disconnect wallet
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        // Kết nối MetaMask và kiểm tra chain ID
+  // When user sign in successfully, run connectWallet
+  useEffect(() => {
+    if (isConnected && address && chainId === 97) {
+      connectWallet(address);
+    }
+  }, [isConnected, address, chainId]); // Run when connection changes or address
+
+  const connectWallet = async (userAddress: string) => {
+    try {
+      if (typeof window.ethereum !== "undefined") {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const { chainId } = await provider.getNetwork();
+        const network = await provider.getNetwork();
 
-        if (chainId !== BigInt(parseInt(BSC_TESTNET_CHAIN_ID, 16))) {
+        // Check chain ID to ensure user is connected with BSC Testnet
+        if (network.chainId !== BigInt(parseInt(BSC_TESTNET_CHAIN_ID, 16))) {
           message.error("Please connect with BSC Testnet.");
           return;
         }
 
-        // Yêu cầu MetaMask cho phép kết nối với tài khoản
-        await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
-        const address = await (await signer).getAddress();
-        setAccount(address);
 
-        // Gọi API để lấy nonce từ backend
+        // Call API to fetch nonce from backend
         const nonceResponse = await fetch(
-          `http://localhost:5000/api/getNonce?address=${address}`
+          `http://localhost:5000/api/getNonce?address=${userAddress}`
         );
         if (!nonceResponse.ok) {
           message.error("Failed to fetch nonce from the server.");
@@ -41,18 +47,18 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({
         }
         const { nonce } = await nonceResponse.json();
 
-        // Yêu cầu MetaMask ký nonce
+        // Request signature from MetaMask
         const messageToSign = `I am signing my one-time nonce: ${nonce}`;
         const signature = await (await signer).signMessage(messageToSign);
 
-        // Gửi chữ ký và địa chỉ ví tới backend để xác thực
+        // Send signature and address to backend
         const authResponse = await fetch("http://localhost:5000/signin", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            address,
+            address: userAddress,
             signature,
             message: messageToSign,
           }),
@@ -60,24 +66,44 @@ const SignInWithMetaMask: React.FC<SignInWithMetaMaskProps> = ({
 
         if (authResponse.ok) {
           const { token } = await authResponse.json();
-          localStorage.setItem("authToken", token); // Lưu token vào localStorage để bảo vệ các route
-          message.success(`Signed in successfully with address: ${address}`);
-          onSignIn(address, await signer); // Gọi hàm callback khi đăng nhập thành công
+          localStorage.setItem("authToken", token); // Save token to local storage to protect route
+          message.success(
+            `Signed in successfully with address: ${userAddress}`
+          );
+          onSignIn(userAddress, await signer); // Callback when sign in successfully
         } else {
           message.error("Authentication failed.");
         }
-      } catch (error) {
-        message.error("Cannot connect with MetaMask.");
+      } else {
+        message.error("MetaMask is not installed.");
       }
-    } else {
-      message.error("MetaMask is not installed.");
+    } catch (error) {
+      console.error("Error connecting to wallet:", error);
+      message.error("Cannot connect with MetaMask.");
     }
   };
 
+  // Add disconnect wallet functionality
+  const disconnectWallet = () => {
+    disconnect(); // This will handle disconnection from web3modal
+    setAccount(null); // Clear account state
+    localStorage.removeItem("authToken"); // Remove token from local storage
+    message.info("Disconnected wallet successfully.");
+  };
+
   return (
-    <Button type="primary" onClick={connectWallet}>
-      {account ? `Connected: ${account}` : "Connect with MetaMask"}
-    </Button>
+    <div>
+      {isConnected && address ? (
+        <div>
+          <p>Connected with address: {address}</p>
+          <Button onClick={disconnectWallet} style={{ marginLeft: "10px" }}>
+            Log out
+          </Button>
+        </div>
+      ) : (
+        <w3m-button label="Connect Wallet" />
+      )}
+    </div>
   );
 };
 
